@@ -1,8 +1,8 @@
 #!/bin/bash
 # Script to copy and push new metric versions to the assets branch.
 
-[ ! -z "$GIT_ASSETS_BRANCH" ] || exit 1
-[ ! -z "$GIT_API_KEY" ] || exit 1
+[ -n "$GIT_ASSETS_BRANCH" ] || exit 1
+[ -n "$GIT_API_KEY" ] || exit 1
 
 version=$(git describe HEAD) || exit 1
 
