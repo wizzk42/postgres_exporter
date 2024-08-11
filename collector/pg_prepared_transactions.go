@@ -45,7 +45,7 @@ var (
 		prometheus.BuildFQName(
 			namespace,
 			pgPreparedTransactionsSubsystem,
-			"prepared_xacts_overview",
+			"overview",
 		),
 		"Currently active prepared transactions",
 		[]string{
@@ -62,7 +62,7 @@ var (
 		prometheus.BuildFQName(
 			namespace,
 			pgPreparedTransactionsSubsystem,
-			"prepared_xacts_count",
+			"count",
 		),
 		"Prepared Transactions grouped by owner and database",
 		[]string{
@@ -76,7 +76,7 @@ var (
 		prometheus.BuildFQName(
 			namespace,
 			pgPreparedTransactionsSubsystem,
-			"prepared_xacts_progress",
+			"in_progress",
 		),
 		"Transactions in progress (xids), xmin/xmax: min/max Transaction still active",
 		[]string{
@@ -104,7 +104,7 @@ var (
 
 	pgPreparedTransactionsCountPerDatabaseAndOwnerQuery = `
 		select
-			  "xacts"."owner" as owner,
+			  "xacts"."owner" as owner
 			, "xacts"."database" as database
 			, count(*) as num_transactions
 		from
@@ -126,7 +126,10 @@ var (
 		      ) as "xips"
 			, pg_snapshot_xmin(s.snapshot) as "xmin"
 			, pg_snapshot_xmax(s.snapshot) as "xmax"
-			, (pg_snapshot_xmax(s.snapshot) - pg_snapshot_xmin(s.snapshot)) as "num_xacts"
+			, array_length(array(
+		          select
+		              pg_snapshot_xip(s.snapshot)
+		      ), 1) as "num_transactions"
 		from
 		    q_snapshot as s
 	`
@@ -200,10 +203,12 @@ func updateCountByDatabaseAndOwnerMetric(ctx context.Context, instance *instance
 	}
 	defer rows.Close()
 
-	var ownerLabel, databaseLabel sql.NullString
-	var count uint64
-
 	for rows.Next() {
+		var (
+			ownerLabel, databaseLabel sql.NullString
+			count                     uint64
+		)
+
 		if err := rows.Scan(&ownerLabel, &databaseLabel, &count); err != nil {
 			return err
 		}
@@ -235,10 +240,12 @@ func updateTransactionsProgress(ctx context.Context, instance *instance, ch chan
 	}
 	defer rows.Close()
 
-	var xidList sql.NullString
-	var xmin, xmax, count sql.NullInt64
-
 	for rows.Next() {
+		var (
+			xidList           sql.NullString
+			xmin, xmax, count sql.NullInt64
+		)
+
 		if err := rows.Scan(&xidList, &xmin, &xmax, &count); err != nil {
 			return err
 		}
