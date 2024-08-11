@@ -24,7 +24,7 @@ import (
 const sentinelSubsystem = "sentinel"
 
 func init() {
-	registerCollector(sentinelSubsystem, defaultDisabled, NewPGSentinelCollector)
+	registerCollector(sentinelSubsystem, defaultEnabled, NewPGSentinelCollector)
 }
 
 type PGSentinelCollector struct {
