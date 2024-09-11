@@ -173,8 +173,9 @@ var (
 			pg_stat_statements using(queryid)
 		where
 			wait_event='CPU'
-		group by samples,
-			  queryid
+		group by
+		      samples
+		    , queryid
 			, pg_stat_statements.query
             , backend_type
 		order by
@@ -315,7 +316,8 @@ var (
 			select
 				  pid
 				, wait_event
-                , path,sum(count) over() as cnt
+                , path
+			    , sum(count) over() as cnt
 			from (
 				select
 					  ash_time
@@ -395,9 +397,9 @@ func updateStatStatementsHistory(ctx context.Context, instance *instance, ch cha
 		var (
 			ashTime        pgtype.Timestamp
 			queryId        sql.NullString
-			rowsPerSecond  sql.NullInt64
-			callsPerSecond sql.NullInt64
-			rowsPerCall    sql.NullInt64
+			rowsPerSecond  sql.NullFloat64
+			callsPerSecond sql.NullFloat64
+			rowsPerCall    sql.NullFloat64
 		)
 
 		err = rows.Scan(&ashTime, &queryId, &rowsPerSecond, &callsPerSecond, &rowsPerCall)
@@ -412,21 +414,21 @@ func updateStatStatementsHistory(ctx context.Context, instance *instance, ch cha
 		ch <- prometheus.MustNewConstMetricWithCreatedTimestamp(
 			sentinelStatStatementsHistoryRowsPerSecondDesc,
 			prometheus.CounterValue,
-			float64(rowsPerSecond.Int64),
+			rowsPerSecond.Float64,
 			ashTime.Time,
 			queryId.String,
 		)
 		ch <- prometheus.MustNewConstMetricWithCreatedTimestamp(
 			sentinelStatStatementsHistoryCallsPerSecondDesc,
 			prometheus.CounterValue,
-			float64(callsPerSecond.Int64),
+			callsPerSecond.Float64,
 			ashTime.Time,
 			queryId.String,
 		)
 		ch <- prometheus.MustNewConstMetricWithCreatedTimestamp(
 			sentinelStatStatementsHistoryRowsPerCallDesc,
 			prometheus.CounterValue,
-			float64(rowsPerCall.Int64),
+			rowsPerCall.Float64,
 			ashTime.Time,
 			queryId.String,
 		)
