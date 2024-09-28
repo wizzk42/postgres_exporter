@@ -65,7 +65,7 @@ var (
 	sentinelIoPerQueryDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, sentinelSubsystem, "io"),
 		"Percent IO usage per query",
-		[]string{"aas", "backend_type", "query_id", "wait_event_type"},
+		[]string{"aas", "backend_type", "query_id", "query", "wait_event_type"},
 		prometheus.Labels{},
 	)
 	sentinelWaitEventPerDatabaseDesc = prometheus.NewDesc(
@@ -77,7 +77,7 @@ var (
 	sentinelWaitEventTypePerQueryDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, sentinelSubsystem, "wait_events_query"),
 		"Wait events per query",
-		[]string{"aas", "query_id", "wait_event_type"},
+		[]string{"aas", "query_id", "query", "wait_event_type"},
 		prometheus.Labels{},
 	)
 	sentinelRecursiveWaitChainPercentDesc = prometheus.NewDesc(
@@ -198,14 +198,18 @@ var (
 			, round(count(*)/samples,2) as "AAS"
 			, backend_type
  			, queryid
+		    , pg_stat_statements.query
 			, wait_event_type
 		from
 			ash
+		left outer join
+			pg_stat_statements using(queryid)
 		where
 			wait_event_type='IO'
 		group by
 			  backend_type
 			, queryid
+		    , pg_stat_statements.query
 			, samples
 			, wait_event_type
 		order by
@@ -254,13 +258,17 @@ var (
 			  round(100 * count(*)/sum(count(*)) over(),0) as "%"
 			, round(count(*)/samples,2) as "AAS"
 			, queryid
+		    , pg_stat_statements.query
 			, wait_event_type
 		from
 		    ash
+		left outer join
+		    pg_stat_statements using(queryid)
 		where
 			wait_event_type != 'CPU'
 		group by
 			  queryid
+		    , pg_stat_statements.query
 			, samples
 			, wait_event_type
 		order by
@@ -515,16 +523,16 @@ func updateIoUsagePerQuery(ctx context.Context, instance *instance, ch chan<- pr
 
 	for rows.Next() {
 		var (
-			percent                                  sql.NullFloat64
-			aas, backendType, queryId, waitEventType sql.NullString
+			percent                                         sql.NullFloat64
+			aas, backendType, queryId, query, waitEventType sql.NullString
 		)
 
-		err = rows.Scan(&percent, &aas, &backendType, &queryId, &waitEventType)
+		err = rows.Scan(&percent, &aas, &backendType, &queryId, &query, &waitEventType)
 		if err != nil {
 			return err
 		}
 
-		if !percent.Valid || !aas.Valid || !backendType.Valid || !queryId.Valid || !waitEventType.Valid {
+		if !percent.Valid || !aas.Valid || !backendType.Valid || !queryId.Valid || !query.Valid || !waitEventType.Valid {
 			continue
 		}
 
@@ -532,7 +540,7 @@ func updateIoUsagePerQuery(ctx context.Context, instance *instance, ch chan<- pr
 			sentinelIoPerQueryDesc,
 			prometheus.GaugeValue,
 			percent.Float64,
-			aas.String, backendType.String, queryId.String, waitEventType.String,
+			aas.String, backendType.String, queryId.String, query.String, waitEventType.String,
 		)
 	}
 
@@ -585,16 +593,16 @@ func updateWaitEventTypePerQuery(ctx context.Context, instance *instance, ch cha
 
 	for rows.Next() {
 		var (
-			percent                     sql.NullFloat64
-			aas, queryId, waitEventType sql.NullString
+			percent                            sql.NullFloat64
+			aas, queryId, query, waitEventType sql.NullString
 		)
 
-		err = rows.Scan(&percent, &aas, &queryId, &waitEventType)
+		err = rows.Scan(&percent, &aas, &queryId, &query, &waitEventType)
 		if err != nil {
 			return err
 		}
 
-		if !percent.Valid || !aas.Valid || !queryId.Valid || !waitEventType.Valid {
+		if !percent.Valid || !aas.Valid || !queryId.Valid || !query.Valid || !waitEventType.Valid {
 			continue
 		}
 
@@ -602,7 +610,7 @@ func updateWaitEventTypePerQuery(ctx context.Context, instance *instance, ch cha
 			sentinelWaitEventTypePerQueryDesc,
 			prometheus.GaugeValue,
 			percent.Float64,
-			aas.String, queryId.String, waitEventType.String,
+			aas.String, queryId.String, query.String, waitEventType.String,
 		)
 	}
 

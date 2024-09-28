@@ -72,12 +72,14 @@ func TestPGSentinelCollector(t *testing.T) {
 			"AAS",
 			"backend_type",
 			"queryid",
+			"query",
 			"wait_event_type",
 		}).AddRow(
 			"99",
 			"10.0",
 			"mock_backend",
 			"1234",
+			"mock_query",
 			"client",
 		))
 	mock.ExpectQuery(sanitizeQuery(pgSentinelWaitEventPerDatabaseQuery)).WithoutArgs().WillReturnRows(
@@ -99,11 +101,13 @@ func TestPGSentinelCollector(t *testing.T) {
 			"%",
 			"AAS",
 			"queryid",
+			"query",
 			"wait_event_type",
 		}).AddRow(
 			"99",
 			"10.0",
 			"1234",
+			"mock_query",
 			"client",
 		))
 	mock.ExpectQuery(sanitizeQuery(pgSentinelRecursiveWaitChainQuery)).WithoutArgs().WillReturnRows(
@@ -171,6 +175,7 @@ func TestPGSentinelCollector(t *testing.T) {
 				"aas":             "10.0",
 				"backend_type":    "mock_backend",
 				"query_id":        "1234",
+				"query":           "mock_query",
 				"wait_event_type": "client",
 			},
 			value:      99,
@@ -190,6 +195,7 @@ func TestPGSentinelCollector(t *testing.T) {
 			labels: labelMap{
 				"aas":             "10.0",
 				"query_id":        "1234",
+				"query":           "mock_query",
 				"wait_event_type": "client",
 			},
 			value:      99,
