@@ -82,13 +82,13 @@ var (
 	)
 	sentinelRecursiveWaitChainPercentDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, sentinelSubsystem, "wait_chain_percent"),
-		"Wait Chains",
+		"Wait Chains (Percent)",
 		[]string{"path"},
 		prometheus.Labels{},
 	)
 	sentinelRecursiveWaitChainSecondsDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, sentinelSubsystem, "wait_chain_seconds"),
-		"Wait Chains",
+		"Wait Chains (Seconds)",
 		[]string{"path"},
 		prometheus.Labels{},
 	)
